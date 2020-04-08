@@ -1,4 +1,5 @@
-# TUE Downloader
+# TUEDownloader
+Tool to download lectures from TU Eindhoven.
 Use this tool at your own risk!
 I'm not responsible for copyright violations you make by using this tool in any way.
 
