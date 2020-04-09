@@ -42,8 +42,21 @@ r = s.get(
   },
 )
 
+
+class TUEDownloaderException(Exception):
+    def __init__(self, message, errors=None):
+
+        # Call the base class constructor with the parameters it needs
+        super().__init__(message)
+
+        # Now for your custom code...
+        self.errors = errors
+
+
 if not r.ok:
-    raise Exception('Request failed, got http status code {}'.format(r.status_code))
+    raise TUEDownloaderException(
+            'Request failed, got http status code {}'.format(r.status_code)
+            )
 
 getpage_soup = BeautifulSoup(r.text, 'html.parser')
 
@@ -58,7 +71,7 @@ for login_form in get_login_form:
         continue
 
 if not loginform_post_url:
-    raise Exception('Login post form url not found')
+    raise TUEDownloaderException('Login post form url not found')
 
 loginform_url_params = urllib.parse.parse_qs(
             urllib.parse.urlparse(loginform_post_url).query
@@ -66,7 +79,7 @@ loginform_url_params = urllib.parse.parse_qs(
 try:
     saml_request_param = loginform_url_params['SAMLRequest']
 except KeyError:
-    raise Exception('SAMLRequest not found')
+    raise TUEDownloaderException('SAMLRequest not found')
 
 r = s.post(
   loginform_post_url,
@@ -107,7 +120,7 @@ def do_saml_response(saml_response_text):
             continue
 
     if not (saml_response and saml_relay_state):
-        raise Exception(
+        raise TUEDownloaderException(
                 'saml_response or saml_relay_state missing in SAML response'
             )
 
@@ -142,14 +155,15 @@ def saml_inbetween_page(session, inbetweenpage):
     vpage_e = inbetweenpage.find('\'', vpage_s + 1)
     page_ret_url = inbetweenpage[vpage_s + 1: vpage_e]
 
-    return session.get(page_ret_url,
-        headers={
-            'User-Agent': user_agent,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-        })
+    return session.get(
+            page_ret_url,
+            headers={
+                'User-Agent': user_agent,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            })
 
 
 def download_video_showcase(videourl, session, video_root='.'):
@@ -173,7 +187,7 @@ def download_video_showcase(videourl, session, video_root='.'):
             continue
 
     if not resource_id:
-        raise Exception('Did not find the resource id')
+        raise TUEDownloaderException('Did not find the resource id')
 
     # # Get #ResourceId
 
@@ -216,12 +230,21 @@ def download_video_showcase(videourl, session, video_root='.'):
 
     for i, video_url in enumerate(video_urls):
         file_name = os.path.join(video_dir, "download_{}.mp4".format(i))
-        with open(file_name, "wb") as f:
-                print("Downloading {} saving to {}".format(video_url, file_name))
+        if os.path.isfile(file_name):
+            print('{} already found, skipping...'.format(file_name))
+            continue
+
+        try:
+            with open(file_name, "wb") as f:
+                print(
+                    "Downloading {} saving to {}".format(
+                        video_url,
+                        file_name)
+                    )
                 response = requests.get(video_url, stream=True)
                 total_length = response.headers.get('content-length')
 
-                if total_length is None: # no content length header
+                if total_length is None:  # no content length header
                     f.write(response.content)
                 else:
                     dl = 0
@@ -230,20 +253,32 @@ def download_video_showcase(videourl, session, video_root='.'):
                         dl += len(data)
                         f.write(data)
                         done = int(50 * dl / total_length)
-                        sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50-done)) )
+                        sys.stdout.write(
+                                "\r[%s%s]" % ('=' * done, ' ' * (50-done))
+                            )
                         sys.stdout.flush()
                     print('\r\n')
+        except Exception:
+            if os.path.isfile(file_name):
+                os.remove(file_name)
+            raise TUEDownloaderException(
+                    'Downloading file {} failed, removed file {}.'.format(
+                        video_url,
+                        file_name)
+                )
+    return video_dir
 
-# After this is the code for downloading one video
+
 def download_video(session, videourl, video_root):
-    videopage = session.get(videourl,
-        headers={
-            'User-Agent': user_agent,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-        })
+    videopage = session.get(
+            videourl,
+            headers={
+                'User-Agent': user_agent,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            })
 
     video_ret = saml_inbetween_page(session, videopage.text)
     r = do_saml_response(video_ret.text)
@@ -279,27 +314,40 @@ def download_channel(session, channel_url, channel_root):
 
     channel_app_info_s = channel_resp.text.find('Application.set(\'data\'')
 
-    showcase_id_s = channel_resp.text.find('\'ShowcaseId\':', channel_app_info_s)
-    showcase_id_s = channel_resp.text.find('\'', showcase_id_s + len('\'ShowcaseId\':')) + 1
+    showcase_id_s = channel_resp.text.find(
+                '\'ShowcaseId\':', channel_app_info_s
+            )
+    showcase_id_s = channel_resp.text.find(
+                '\'',
+                showcase_id_s + len('\'ShowcaseId\':')
+            ) + 1
     showcase_id_e = channel_resp.text.find('\'', showcase_id_s)
     showcase_id = channel_resp.text[showcase_id_s:showcase_id_e]
 
     sfapikey_s = channel_resp.text.find('\'ApiKey\':', channel_app_info_s)
-    sfapikey_s = channel_resp.text.find('\'', sfapikey_s + len('\'ApiKey\':')) + 1
+    sfapikey_s = channel_resp.text.find(
+                '\'',
+                sfapikey_s + len('\'ApiKey\':')
+            ) + 1
     sfapikey_e = channel_resp.text.find('\'', sfapikey_s)
     sfapikey = channel_resp.text[sfapikey_s:sfapikey_e]
 
     channel_id_s = channel_resp.text.find('\'ChannelId\':', channel_app_info_s)
-    channel_id_s = channel_resp.text.find('\'', channel_id_s + len('\'ChannelId\':')) + 1
+    channel_id_s = channel_resp.text.find(
+                '\'',
+                channel_id_s + len('\'ChannelId\':')
+            ) + 1
     channel_id_e = channel_resp.text.find('\'', channel_id_s)
     channel_id = channel_resp.text[channel_id_s:channel_id_e]
 
     headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0',
+        'User-Agent': user_agent,
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'Accept-Language': 'en-US,en;q=0.5',
         'Referer':
-        'https://videocollege.tue.nl/Mediasite/Showcase/{}/Channel/{}'.format(showcase_id, channel_id),
+        'https://videocollege.tue.nl/Mediasite/Showcase/{}/Channel/{}'.format(
+            showcase_id,
+            channel_id),
         'sfapikey': sfapikey,
         'ShowcaseId': showcase_id,
         'X-Requested-With': 'XMLHttpRequest',
@@ -307,7 +355,8 @@ def download_channel(session, channel_url, channel_root):
     }
 
     params = (
-        ('$filter', '(Status eq \'Viewable\' or Status eq \'Live\' or (Status eq \'Record\' and IsLiveEnabled eq true) or (Status eq \'OpenForRecord\' and IsLiveEnabled eq true)) and IsApproved eq true'),
+        ('$filter',
+            '(Status eq \'Viewable\' or Status eq \'Live\' or (Status eq \'Record\' and IsLiveEnabled eq true) or (Status eq \'OpenForRecord\' and IsLiveEnabled eq true)) and IsApproved eq true'),
         ('$top', '16'),
         ('$orderby', 'RecordDate desc'),
         ('$select', 'full'),
@@ -317,7 +366,8 @@ def download_channel(session, channel_url, channel_root):
 
     # # channel id is in url (eb....4d)
     channel_json_resp = session.get(
-            'https://videocollege.tue.nl/Mediasite/api/v1/ShowcaseChannels(%27{}%27)/Presentations'.format(channel_id),
+            'https://videocollege.tue.nl/Mediasite/api/v1/ShowcaseChannels(%27{}%27)/Presentations'.format(
+                channel_id),
             headers=headers,
             params=params)
 
@@ -338,10 +388,18 @@ def download_channel(session, channel_url, channel_root):
         if 'target' not in channel_vid_play.keys():
             continue
 
-        download_video_showcase(
-                channel_vid_play['target'],
-                session,
-                video_root=this_channel_root)
+        try:
+            download_video_showcase(
+                    channel_vid_play['target'],
+                    session,
+                    video_root=this_channel_root)
+        except TUEDownloaderException as e:
+            print(
+                'Downloading {} failed: {}'.format(
+                    channel_vid_play['target'],
+                    e.message)
+                )
+            continue
 
 
 if args.channel:
