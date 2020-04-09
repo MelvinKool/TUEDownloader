@@ -232,6 +232,7 @@ def download_video_showcase(videourl, session, video_root='.'):
                         done = int(50 * dl / total_length)
                         sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50-done)) )
                         sys.stdout.flush()
+                    print('\r\n')
 
 # After this is the code for downloading one video
 def download_video(session, videourl, video_root):
