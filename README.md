@@ -10,3 +10,6 @@ Set the permissions on the config file and you are ready to go.
 
 ## Downloading a lecture
 To download a lecture, run `tuedownloader https://videocollege.tue.nl/Mediasite/Showcase/<hash>/Presentation/<hash>`
+
+## Downloading a channel
+To download a lecture, run `tuedownloader --channel https://videocollege.tue.nl/Mediasite/Showcase/<hash>/Channel/<hash>`
