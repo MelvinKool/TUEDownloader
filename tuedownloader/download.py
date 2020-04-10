@@ -341,12 +341,13 @@ class TUEDownloader(object):
             'Connection': 'keep-alive',
         }
 
+        # TODO ('$top', '16'), looping
         params = (
             ('$filter',
                 '(Status eq \'Viewable\' or Status eq \'Live\' or (Status eq \'Record\' and IsLiveEnabled eq true) or (Status eq \'OpenForRecord\' and IsLiveEnabled eq true)) and IsApproved eq true'),
-            ('$top', '16'),
             ('$orderby', 'RecordDate desc'),
             ('$select', 'full'),
+            ('$top', '999'),
             ('$skip', '0'),
             ('excludeduplicates', 'true'),
         )
