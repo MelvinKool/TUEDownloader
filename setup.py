@@ -7,7 +7,7 @@ setup(
     install_requires=['beautifulsoup4', 'requests'],
     entry_points = {
         "console_scripts": [
-            "tuedownloader = tuedownloader.download"
+            "tuedownloader = tuedownloader.download:main"
             ]
     }
 )
