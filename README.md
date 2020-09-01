@@ -15,5 +15,5 @@ To download a lecture, run `tuedownloader https://videocollege.tue.nl/Mediasite/
 To download a lecture, run `tuedownloader --channel https://videocollege.tue.nl/Mediasite/Showcase/<hash>/Channel/<hash>`
 
 ## Contributors
-Melvin Kool (project owner)
-RickdeJager
+* Melvin Kool (project owner)
+* RickdeJager
