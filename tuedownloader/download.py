@@ -195,7 +195,7 @@ class TUEDownloader(object):
             })
 
         player_options = json.loads(r.text)
-        video_urls = set()
+        video_urls = []
         # TODO mimetype checks
         for stream in player_options['d']['Presentation']['Streams']:
             if 'VideoUrls' not in stream.keys():
@@ -203,7 +203,7 @@ class TUEDownloader(object):
 
             for video_url in stream['VideoUrls']:
                 try:
-                    video_urls.add(video_url['Location'])
+                    video_urls.append(video_url['Location'])
                 except KeyError:
                     continue
 
@@ -212,7 +212,7 @@ class TUEDownloader(object):
         if not os.path.isdir(video_dir):
             os.makedirs(video_dir)
 
-        for i, video_url in enumerate(video_urls):
+        for i, video_url in enumerate(video_urls[:2]):
             file_name = os.path.join(video_dir, "download_{}.mp4".format(i))
             if os.path.isfile(file_name):
                 print('{} already found, skipping...'.format(file_name))
