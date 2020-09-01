@@ -11,6 +11,7 @@ import sys
 import configparser
 import argparse
 import os
+import youtube_dl
 from tuedownloader import util
 
 
@@ -217,30 +218,12 @@ class TUEDownloader(object):
                 print('{} already found, skipping...'.format(file_name))
                 continue
 
+            ytdl_opts = {
+                    'outtmpl': file_name
+            }
             try:
-                with open(file_name, "wb") as f:
-                    print(
-                        "Downloading {} saving to {}".format(
-                            video_url,
-                            file_name)
-                        )
-                    response = requests.get(video_url, stream=True)
-                    total_length = response.headers.get('content-length')
-
-                    if total_length is None:  # no content length header
-                        f.write(response.content)
-                    else:
-                        dl = 0
-                        total_length = int(total_length)
-                        for data in response.iter_content(chunk_size=4096):
-                            dl += len(data)
-                            f.write(data)
-                            done = int(50 * dl / total_length)
-                            sys.stdout.write(
-                                    "\r[%s%s]" % ('=' * done, ' ' * (50-done))
-                                )
-                            sys.stdout.flush()
-                        print('\r\n')
+                 with youtube_dl.YoutubeDL(ytdl_opts) as ytdl:
+                    ytdl.download([video_url])
             except Exception:
                 if os.path.isfile(file_name):
                     os.remove(file_name)
