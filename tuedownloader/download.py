@@ -224,6 +224,7 @@ class TUEDownloader(object):
             try:
                 with youtube_dl.YoutubeDL(ytdl_opts) as ytdl:
                     ytdl.download([video_url])
+
             except Exception:
                 if os.path.isfile(file_name):
                     os.remove(file_name)
