@@ -32,6 +32,11 @@ class TUEDownloader(object):
         self.password = password
         self.user_agent = user_agent
         self.session = None
+        self.supported_mime_types = [
+            "video/mp4",
+            "video/x-mpeg-dash",
+            "video/x-mp4-fragmented",
+        ]
 
     def get_session(self, login_url):
         self.session = requests.Session()
@@ -195,15 +200,20 @@ class TUEDownloader(object):
             })
 
         player_options = json.loads(r.text)
-        video_urls = set()
-        # TODO mimetype checks
+        # Contains a dict with available mimetypes and location urls
+        video_urls = {}
         for stream in player_options['d']['Presentation']['Streams']:
             if 'VideoUrls' not in stream.keys():
                 continue
 
             for video_url in stream['VideoUrls']:
                 try:
-                    video_urls.add(video_url['Location'])
+                    mime_type = video_url['MimeType'] 
+                    location = video_url['Location'] 
+                    if mime_type in video_urls:
+                        video_urls[mime_type].add(location)
+                    else:
+                        video_urls[mime_type] = {location}
                 except KeyError:
                     continue
 
@@ -212,7 +222,19 @@ class TUEDownloader(object):
         if not os.path.isdir(video_dir):
             os.makedirs(video_dir)
 
-        for i, video_url in enumerate(video_urls):
+        # Select which mimetype to use
+        for mime_type in self.supported_mime_types:
+            if mime_type in video_urls:
+                print(f"[i] Selected mime_type: {mime_type}")
+                supported_urls = video_urls[mime_type]
+                break
+
+        # TODO; This only allows for 1 mime_type per lecture,
+        # If for example, slides/screencast is recorded in another
+        # format, this won't work.
+        # However, I don't think that's a common case (exluding slide png's)
+
+        for i, video_url in enumerate(supported_urls):
             file_name = os.path.join(video_dir, "download_{}.mp4".format(i))
             if os.path.isfile(file_name):
                 print('{} already found, skipping...'.format(file_name))
@@ -223,6 +245,9 @@ class TUEDownloader(object):
             }
             try:
                 with youtube_dl.YoutubeDL(ytdl_opts) as ytdl:
+                    # TODO; Move this download out of the for loop.
+                    # YTDL takes a list of videos as argument, which it
+                    # Can download in parallel
                     ytdl.download([video_url])
 
             except Exception:
