@@ -12,7 +12,7 @@ import configparser
 import argparse
 import os
 import youtube_dl
-from tuedownloader import util
+from tuedownloader import util, editor
 
 
 class TUEDownloaderException(Exception):
@@ -155,7 +155,7 @@ class TUEDownloader(object):
                     'Upgrade-Insecure-Requests': '1',
                 })
 
-    def download_video_showcase(self, videourl, video_root='.'):
+    def download_video_showcase(self, videourl, merge, video_root='.',):
         r = self.session.get(
             videourl,
             headers={
@@ -258,9 +258,13 @@ class TUEDownloader(object):
                             video_url,
                             file_name)
                     )
+        if merge and len(supported_urls) == 2:
+            input_files = [os.path.join(video_dir, "download_{}.mp4".format(i)) for i in [0, 1]]
+            output_file = os.path.join(video_dir, "merged.mp4")
+            editor.diagonal(*input_files, output_file, overlap=(150, 150))
         return video_dir
 
-    def download_video(self, videourl, video_root):
+    def download_video(self, videourl, video_root, merge):
         videopage = self.session.get(
                 videourl,
                 headers={
@@ -286,10 +290,11 @@ class TUEDownloader(object):
 
         self.download_video_showcase(
                 mediasite_info_url,
+                merge,
                 video_root=video_root
             )
 
-    def download_channel(self, channel_url, channel_root):
+    def download_channel(self, channel_url, channel_root, merge):
         # Get title from page.title
         saml_resp = self.session.get(
             channel_url,
@@ -388,7 +393,9 @@ class TUEDownloader(object):
             try:
                 self.download_video_showcase(
                         channel_vid_play['target'],
-                        video_root=this_channel_root)
+                        merge,
+                        video_root=this_channel_root,
+                    )
             except TUEDownloaderException as e:
                 print(
                     'Downloading {} failed: {}'.format(
@@ -407,6 +414,7 @@ def main():
         )
     parser.add_argument('--channel', action='store_true')
     parser.add_argument('--root', default='.')
+    parser.add_argument('--merge', action='store_true')
     args = parser.parse_args()
 
     pageurl = args.url
@@ -423,9 +431,9 @@ def main():
 
     tue_downloader.get_session(pageurl)
     if args.channel:
-        tue_downloader.download_channel(pageurl, args.root)
+        tue_downloader.download_channel(pageurl, args.root, args.merge)
     else:
-        tue_downloader.download_video(pageurl, args.root)
+        tue_downloader.download_video(pageurl, args.root, args.merge)
 
 
 if __name__ == "__main__":
