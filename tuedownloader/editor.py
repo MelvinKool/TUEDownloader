@@ -24,7 +24,7 @@ def detect_crop(filepath):
     contains both files, side by side, scaled to the same height
     The audio is taken from the second file.
 '''
-def side_by_side(cam_path, pc_path, out_path, preset='ultrafast'):
+def side_by_side(cam_path, pc_path, out_path, preset='veryfast'):
     cam_crop = detect_crop(cam_path)
     pc_crop = detect_crop(pc_path)
 
@@ -40,7 +40,7 @@ def side_by_side(cam_path, pc_path, out_path, preset='ultrafast'):
     (
         ffmpeg
         .filter([cam_stream, pc_stream], 'hstack')
-        .output(out_path, **{'map': '1:a', 'preset': preset})
+        .output(out_path, **{'map': '1:a', 'preset': preset, 'crf': 23})
         .global_args('-threads', '0')
         .run()
     )
@@ -50,7 +50,7 @@ def side_by_side(cam_path, pc_path, out_path, preset='ultrafast'):
     contains both files in a diagonal layout
     The audio is taken from the second file.
 '''
-def diagonal(cam_path, pc_path, out_path, preset='ultrafast', overlap=(0, 0)):
+def diagonal(cam_path, pc_path, out_path, preset='veryfast', overlap=(0, 0)):
     cam_crop = detect_crop(cam_path)
     pc_crop = detect_crop(pc_path)
 
@@ -69,7 +69,7 @@ def diagonal(cam_path, pc_path, out_path, preset='ultrafast', overlap=(0, 0)):
     (
         ffmpeg
         .filter_([cam_padded, pc_stream], 'xstack', layout=layout)
-        .output(out_path, map='1:a', preset=preset)
+        .output(out_path, **{'map': '1:a', 'preset': preset, 'crf': 23})
         .global_args('-threads', '0')
         .run()
     )
