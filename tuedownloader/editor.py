@@ -1,21 +1,35 @@
+import re
 import subprocess
 import ffmpeg
 
 def detect_crop(filepath):
-    #b'crop=720:528:120:6\n'
     # TODO: The below command only check the first second to determine the crop.
     # This may not always hold for the entire video
     # 
     # The reason we can't just use the video's dimensions, is that a lot of lectures will use
     # 4:3 slides on a 16:9 stream, leaving black bars all over the place
-    #
-    # TODO; This uses subprocess/awk instead of relying on ffmpeg-python bindings.
-    # Might make it harder to support Windows/Mac
-    # Also, this uses 'shell=True', with "filepath" as an injection vector, which is insecure
-    crop_string = subprocess.check_output("ffmpeg -i '"+filepath+"' -t 1 -vf cropdetect -f null - 2>&1 | awk '/crop=/ { print substr($NF, 6) }' | tail -1", shell=True).decode('ascii').strip()
-    # TODO: Check if crop_string is empty
-    print(crop_string)
-    dimensions = [int(i) for i in crop_string.split(':')]
+
+    # FFMPEG uses stderr to print the revevant info
+    std_err_dump = subprocess.check_output([
+        "ffmpeg",
+        "-i",
+        filepath,
+        "-t",
+        "1",
+        "-vf",
+        "cropdetect",
+        "-f",
+        "null",
+        "-",
+     ],
+     stderr=subprocess.STDOUT)
+
+    # We're looking for the last occurrence of "crop=720:528:120:6"
+    crop_string = re.findall(b"crop=\d+:\d+:\d+:\d+", std_err_dump)[-1]
+
+    # Skip "crop=" and split the rest
+    dimensions = [int(i) for i in crop_string[5:].split(b':')]
+
     # Width, Heigth, (Top left corner)
     return dimensions
 
