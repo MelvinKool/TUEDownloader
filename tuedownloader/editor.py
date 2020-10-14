@@ -25,11 +25,17 @@ def detect_crop(filepath):
             )
 
 
-    # We're looking for the last occurrence of "crop=720:528:120:6"
-    crop_string = re.findall(b"crop=\d+:\d+:\d+:\d+", std_err_dump)[-1]
+    try: 
+        # We're looking for the last occurrence of "crop=720:528:120:6"
+        crop_string = re.findall(b"crop=\d+:\d+:\d+:\d+", std_err_dump)[-1]
 
-    # Skip "crop=" and split the rest
-    dimensions = [int(i) for i in crop_string[5:].split(b':')]
+        # Skip "crop=" and split the rest
+        dimensions = [int(i) for i in crop_string[5:].split(b':')]
+    except:
+        # If we can't get a crop, return the videos dimensions instead
+        probe = ffmpeg.probe(filepath)
+        info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+        dimensions = [info["width"], info["height"], 0, 0]
 
     # Width, Heigth, (Top left corner)
     return dimensions
