@@ -85,6 +85,7 @@ def diagonal(cam_path, pc_path, out_path, preset='veryfast', overlap=(0, 0)):
         ffmpeg
         .filter_([cam_padded, pc_stream], 'xstack', layout=layout)
         .output(out_path, **{'map': '1:a', 'preset': preset, 'crf': 23})
+        .overwrite_output()
         .global_args('-threads', '0')
         .run()
     )

@@ -258,10 +258,13 @@ class TUEDownloader(object):
                             video_url,
                             file_name)
                     )
-        if merge and len(supported_urls) == 2:
+
+        output_file = os.path.join(video_dir, "merged.mp4")
+        if merge and len(supported_urls) == 2 and not os.path.isfile(output_file):
             input_files = [os.path.join(video_dir, "download_{}.mp4".format(i)) for i in [0, 1]]
-            output_file = os.path.join(video_dir, "merged.mp4")
-            editor.diagonal(*input_files, output_file, overlap=(150, 150))
+            tmp_output_file = os.path.join(video_dir, "merged.mp4.part")
+            editor.diagonal(*input_files, tmp_output_file, overlap=(150, 150))
+            os.rename(tmp_output_file, output_file)
         return video_dir
 
     def download_video(self, videourl, video_root, merge):
