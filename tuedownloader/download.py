@@ -27,7 +27,8 @@ class TUEDownloaderException(Exception):
 
 class TUEDownloader(object):
 
-    def __init__(self, username, password, user_agent):
+    def __init__(self, username, password, user_agent,
+            merge=False, layout='diagonal'):
         self.username = username
         self.password = password
         self.user_agent = user_agent
@@ -37,6 +38,8 @@ class TUEDownloader(object):
             "video/x-mpeg-dash",
             "video/x-mp4-fragmented",
         ]
+        self.merge = merge
+        self.layout = layout
 
     def get_session(self, login_url):
         self.session = requests.Session()
@@ -155,7 +158,7 @@ class TUEDownloader(object):
                     'Upgrade-Insecure-Requests': '1',
                 })
 
-    def download_video_showcase(self, videourl, merge, video_root='.',):
+    def download_video_showcase(self, videourl, video_root='.',):
         r = self.session.get(
             videourl,
             headers={
@@ -260,14 +263,19 @@ class TUEDownloader(object):
                     )
 
         output_file = os.path.join(video_dir, "merged.mp4")
-        if merge and len(supported_urls) == 2 and not os.path.isfile(output_file):
+        if self.merge and len(supported_urls) == 2 and not os.path.isfile(output_file):
             input_files = [os.path.join(video_dir, "download_{}.mp4".format(i)) for i in [0, 1]]
             tmp_output_file = os.path.join(video_dir, "merged.mp4.part")
-            editor.diagonal(*input_files, tmp_output_file, overlap=(150, 150))
+            # TODO
+            if self.layout == 'sidebyside':
+                editor.side_by_side(*input_files, tmp_output_file)
+            else:
+                # diagonal, the default
+                editor.diagonal(*input_files, tmp_output_file, overlap=(150, 150))
             os.rename(tmp_output_file, output_file)
         return video_dir
 
-    def download_video(self, videourl, video_root, merge):
+    def download_video(self, videourl, video_root):
         videopage = self.session.get(
                 videourl,
                 headers={
@@ -293,11 +301,10 @@ class TUEDownloader(object):
 
         self.download_video_showcase(
                 mediasite_info_url,
-                merge,
                 video_root=video_root
             )
 
-    def download_channel(self, channel_url, channel_root, merge):
+    def download_channel(self, channel_url, channel_root):
         # Get title from page.title
         saml_resp = self.session.get(
             channel_url,
@@ -396,7 +403,6 @@ class TUEDownloader(object):
             try:
                 self.download_video_showcase(
                         channel_vid_play['target'],
-                        merge,
                         video_root=this_channel_root,
                     )
             except TUEDownloaderException as e:
@@ -418,6 +424,7 @@ def main():
     parser.add_argument('--channel', action='store_true')
     parser.add_argument('--root', default='.')
     parser.add_argument('--merge', action='store_true')
+    parser.add_argument('--layout', default='diagonal')
     args = parser.parse_args()
 
     pageurl = args.url
@@ -430,13 +437,17 @@ def main():
     username = cfg['Credentials']['Username']
     password = cfg['Credentials']['Password']
 
-    tue_downloader = TUEDownloader(username, password, user_agent)
+    tue_downloader = TUEDownloader(
+                username, password, user_agent,
+                merge=args.merge,
+                layout=args.layout
+            )
 
     tue_downloader.get_session(pageurl)
     if args.channel:
-        tue_downloader.download_channel(pageurl, args.root, args.merge)
+        tue_downloader.download_channel(pageurl, args.root)
     else:
-        tue_downloader.download_video(pageurl, args.root, args.merge)
+        tue_downloader.download_video(pageurl, args.root)
 
 
 if __name__ == "__main__":
