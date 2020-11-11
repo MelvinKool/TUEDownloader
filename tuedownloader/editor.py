@@ -17,7 +17,7 @@ def detect_crop(filepath):
             ).filter(
                 'cropdetect'
             ).output(
-                throwaway_file.name, vframes=2
+                throwaway_file.name, vframes=20
             ).overwrite_output(
             ).run(
                 capture_stdout=True,
