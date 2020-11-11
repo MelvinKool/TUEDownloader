@@ -1,6 +1,6 @@
 import re
-import subprocess
 import ffmpeg
+import tempfile
 
 def detect_crop(filepath):
     # TODO: The below command only check the first second to determine the crop.
@@ -10,19 +10,20 @@ def detect_crop(filepath):
     # 4:3 slides on a 16:9 stream, leaving black bars all over the place
 
     # FFMPEG uses stderr to print the revevant info
-    std_err_dump = subprocess.check_output([
-        "ffmpeg",
-        "-i",
-        filepath,
-        "-t",
-        "1",
-        "-vf",
-        "cropdetect",
-        "-f",
-        "null",
-        "-",
-     ],
-     stderr=subprocess.STDOUT)
+
+    throwaway_file = tempfile.NamedTemporaryFile()
+    _, std_err_dump = ffmpeg.input(
+                filepath, ss=1
+            ).filter(
+                'cropdetect'
+            ).output(
+                throwaway_file.name, vframes=2
+            ).overwrite_output(
+            ).run(
+                capture_stdout=True,
+                capture_stderr=True
+            )
+
 
     # We're looking for the last occurrence of "crop=720:528:120:6"
     crop_string = re.findall(b"crop=\d+:\d+:\d+:\d+", std_err_dump)[-1]
