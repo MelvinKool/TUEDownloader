@@ -12,12 +12,13 @@ def detect_crop(filepath):
     # FFMPEG uses stderr to print the revevant info
 
     throwaway_file = tempfile.NamedTemporaryFile()
+
     _, std_err_dump = ffmpeg.input(
                 filepath, ss=1
             ).filter(
                 'cropdetect'
             ).output(
-                throwaway_file.name, vframes=20
+                throwaway_file.name, vframes=20, format='mp4'
             ).overwrite_output(
             ).run(
                 capture_stdout=True,
@@ -90,7 +91,7 @@ def diagonal(cam_path, pc_path, out_path, preset='veryfast', overlap=(0, 0)):
     (
         ffmpeg
         .filter_([cam_padded, pc_stream], 'xstack', layout=layout)
-        .output(out_path, **{'map': '1:a', 'preset': preset, 'crf': 23})
+        .output(out_path, **{'map': '1:a', 'preset': preset, 'crf': 23, 'format': 'mp4'})
         .overwrite_output()
         .global_args('-threads', '0')
         .run()
