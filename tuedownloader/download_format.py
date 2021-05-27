@@ -419,7 +419,7 @@ def main():
     parser.add_argument('url')
     parser.add_argument(
             '--config',
-            default=r'C:\Users\20193269\Documents\GitHub\TUEDownloader\tuedownloader.cfg'
+            default='/etc/tuedownloader/tuedownloader.cfg'
         )
     parser.add_argument('--channel', action='store_true')
     parser.add_argument('--root', default='.')
