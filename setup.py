@@ -5,7 +5,7 @@ def set_cfg_path():
     dirname = os.path.dirname(os.path.abspath(__file__))
     path_downloadformatpy = os.path.join(dirname,"tuedownloader", "download_format.py")
     path_downloadpy = os.path.join(dirname,"tuedownloader", "download.py")
-    path_config = os.path.join(dirname,"tuedownloader.cfg")
+    path_config = os.path.join(dirname,"tuedownloader", "tuedownloader.cfg")
     download_file = open(path_downloadpy,"w")
     target_string = "default='/etc/tuedownloader/tuedownloader.cfg'"
 
