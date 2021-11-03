@@ -38,6 +38,7 @@ class TUEDownloader(object):
             "video/mp4",
             "video/x-mpeg-dash",
             "video/x-mp4-fragmented",
+            "audio/x-mpegurl",
         ]
         self.merge = merge
         self.layout = layout
@@ -227,9 +228,10 @@ class TUEDownloader(object):
             os.makedirs(video_dir)
 
         # Select which mimetype to use
+        supported_urls = list()
         for mime_type in self.supported_mime_types:
             if mime_type in video_urls:
-                print(f"[i] Selected mime_type: {mime_type}")
+                print("[i] Selected mime_type: {}".format(mime_type))
                 supported_urls = video_urls[mime_type]
                 break
 
