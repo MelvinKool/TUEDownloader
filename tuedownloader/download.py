@@ -12,6 +12,7 @@ import configparser
 import argparse
 import os
 import youtube_dl
+import base64
 from tuedownloader import util, editor
 
 
@@ -211,8 +212,8 @@ class TUEDownloader(object):
 
             for video_url in stream['VideoUrls']:
                 try:
-                    mime_type = video_url['MimeType'] 
-                    location = video_url['Location'] 
+                    mime_type = video_url['MimeType']
+                    location = video_url['Location']
                     if mime_type in video_urls:
                         video_urls[mime_type].add(location)
                     else:
@@ -323,7 +324,7 @@ class TUEDownloader(object):
         channel_title = getchannel_soup.title.text
         print('Channel: {}'.format(channel_title))
 
-        channel_app_info_s = channel_resp.text.find('Application.set(\'data\'')
+        channel_app_info_s = channel_resp.text.find('window.App')
 
         showcase_id_s = channel_resp.text.find(
                     '\'ShowcaseId\':', channel_app_info_s
@@ -435,7 +436,11 @@ def main():
     user_agent = cfg['Downloader']['UserAgent']
 
     username = cfg['Credentials']['Username']
-    password = cfg['Credentials']['Password']
+    try:
+        password = cfg['Credentials']['Password']
+    except KeyError:
+        password_b64 = cfg['Credentials']['PasswordEncoded']
+        password = base64.b64decode(password_b64)
 
     tue_downloader = TUEDownloader(
                 username, password, user_agent,
