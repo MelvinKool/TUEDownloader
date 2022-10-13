@@ -172,18 +172,10 @@ class TUEDownloader(object):
             })
 
         videopage_soup = BeautifulSoup(r.text, 'html.parser')
-        found_resource_ids = videopage_soup.find_all('div', {'id': 'ResourceId'})
-        resource_id = None
-        for found_r_id in found_resource_ids:
-            resource_id = found_r_id.text.strip()
-            # check if text is not empty
-            if not resource_id:
-                continue
 
+        resource_id = videourl.split('/').pop()
         if not resource_id:
             raise TUEDownloaderException('Did not find the resource id')
-
-        # # Get #ResourceId
 
         payload = {"getPlayerOptionsRequest": {
             "ResourceId": resource_id,
